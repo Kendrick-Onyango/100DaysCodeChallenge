@@ -30,6 +30,28 @@ cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2",
 
 
 
+# Data Preparation 
+### Titanic Data
+data(Titanic)
+titanic <- Titanic %>% as_tibble()  %>%
+  mutate(Sex=str_to_title(Sex)) # capitalize
+
+titanic_bar <- titanic %>%
+  # add a percent for Class 
+  group_by(Sex,Survived,Class) %>%
+  summarize(n=sum(n)) %>%
+  group_by(Sex,Survived) %>%
+  mutate(percent_num=n/sum(n),percent_char=as.character(percent(n/sum(n),0)))
+
+# Titanic passenger composition (for waffle chart)
+titanic_class <- titanic %>%
+  group_by(Class) %>%
+  summarize(n=sum(n)) %>%
+  ungroup()
+
+
+
+
 ggplot(data=gapminder %>% filter(year==2007),
        aes(x = gdpPercap, y = lifeExp, color = continent,size=pop,group=1)) +
   geom_point() +
@@ -46,3 +68,23 @@ ggplot(data=gapminder %>% filter(year==2007),
   ylab('Life Expectancy (at birth)') +
   guides(color=guide_legend(title='Continent',override.aes = list(size=2.5)),
          size=guide_legend(title='Population'))
+
+
+
+
+## Stacked bar of Titanic dataset
+ggplot(data=titanic_bar,
+       aes(x = Sex, y=percent_num,fill = fct_rev(Class))) +
+  facet_grid(~Survived) +
+  geom_bar(stat='identity',color='black') +
+  coord_flip() +
+  geom_text(data=titanic_bar,aes(label = ifelse(percent_num > 0.07 ,percent_char,NA)),
+            size = 3,position = position_stack(vjust = 0.5)) +
+  scale_fill_manual(values=wes_palette('Royal2')) +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        panel.grid = element_blank())+
+  labs(title='Titanic Passengers by Survival Status') +
+  xlab('') +
+  ylab('') +
+  guides(fill = guide_legend(title='Class',reverse=T))
